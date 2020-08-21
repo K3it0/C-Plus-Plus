@@ -23,6 +23,10 @@
  *
  * @tparam T Type to store in BST
  */
+
+#include <iostream>
+#include <memory>
+
 template <typename T>
 class BinarySearchTree {
  public:
@@ -43,9 +47,10 @@ class BinarySearchTree {
      *
      * @param value value to insert
      */
-    void insertValue(const T& value) {
+    template <typename T>
+    void insertValue(T&& value) {
         if (!rootNode) {
-            rootNode = new Node(value);
+            rootNode = std::make_shared<Node>(value);
             return;
         }
 
@@ -59,9 +64,10 @@ class BinarySearchTree {
      * @param target Element to search for
      * @return T* Pointer to found element
      */
-    T* findValue(const T& target) {
-        Node* targetNode = findNodeHelper(rootNode, target);
-        return &(targetNode->value);
+    template <typename T>
+    std::shared_ptr<T> findValue(T&& target) {
+        std::shared_ptr<Node> targetNode = findNodeHelper(rootNode, target);
+        return std::make_shared<T>(targetNode->value);
     }
 
     /**
@@ -69,7 +75,7 @@ class BinarySearchTree {
      *
      * @param value Element to delete
      */
-    void removeValue(const T& value) { removeNodeHelper(rootNode, value); }
+    void removeValue(T&& value) { removeNodeHelper(rootNode, value); }
 
     /**
      * @brief Prints BST inorder
@@ -87,13 +93,9 @@ class BinarySearchTree {
     }
 
  private:
-    struct Node;
+    struct Node;  //< Node structure [value][*lNode][*rNode]
 
-    /**
-     * @brief Root node of the BST
-     *
-     */
-    Node* rootNode;
+    std::shared_ptr<Node> rootNode;  //< Root node of the BST
 
     /**
      * @brief Helper function to insert node recursive
@@ -102,9 +104,10 @@ class BinarySearchTree {
      * @param value Value to insert into BST
      * @return Node* Pointer to root node of current sub-tree
      */
-    Node* insertHelper(Node* node, const T& value) {
+    template <typename T>
+    std::shared_ptr<Node> insertHelper(std::shared_ptr<Node> node, T&& value) {
         if (!node) {
-            return new Node(value);
+            return std::make_shared<Node>(value);
         }
 
         if (value > node->value) {
@@ -122,7 +125,7 @@ class BinarySearchTree {
      * @param node Root node for sub-tree to search in
      * @return Node* Minimum node in sub-tree
      */
-    Node* findMinNodeInSubTree(Node* node) {
+    std::shared_ptr<Node> findMinNodeInSubTree(std::shared_ptr<Node> node) {
         if (!node->lNode) {
             return node;
         }
@@ -137,7 +140,9 @@ class BinarySearchTree {
      * @param target Value to find in BST
      * @return Node* Pointer to node with target value
      */
-    Node* findNodeHelper(Node* node, const T& target) {
+    template <typename T>
+    std::shared_ptr<Node> findNodeHelper(std::shared_ptr<Node> node,
+                                         T&& target) {
         if (!node || node->value == target) {
             return node;
         }
@@ -156,7 +161,9 @@ class BinarySearchTree {
      * @param target Value to remove from BST
      * @return Node* Pointer to new root node in sub-tree
      */
-    Node* removeNodeHelper(Node* node, const T& target) {
+    template <typename T>
+    std::shared_ptr<Node> removeNodeHelper(std::shared_ptr<Node> node,
+                                           T&& target) {
         if (!node) {
             return rootNode;
         }
@@ -166,15 +173,15 @@ class BinarySearchTree {
         } else if (target > node->value) {
             node->rNode = removeNodeHelper(node->rNode, target);
         } else {
-            Node* temp = nullptr;
+            std::shared_ptr<Node> temp = nullptr;
 
             if (!node->lNode) {
                 temp = node->rNode;
-                delete node;
+                node.reset();
                 return temp;
             } else if (!node->rNode) {
                 temp = node->lNode;
-                delete node;
+                node.reset();
                 return temp;
             }
 
@@ -192,7 +199,7 @@ class BinarySearchTree {
      *
      * @param node Root node of current sub-tree
      */
-    void clearTreeHelper(Node* node) {
+    void clearTreeHelper(std::shared_ptr<Node> node) {
         if (!node) {
             return;
         }
@@ -202,8 +209,7 @@ class BinarySearchTree {
         clearTreeHelper(node->rNode);
 
         // Delete node
-        delete node;
-        node = nullptr;
+        node.reset();
     }
 
     /**
@@ -211,7 +217,7 @@ class BinarySearchTree {
      *
      * @param node Root node of current sub-tree
      */
-    void printInorderHelper(Node* node) {
+    void printInorderHelper(std::shared_ptr<Node> node) {
         if (node) {
             printInorderHelper(node->lNode);
             std::cout << node->value << std::endl;
@@ -232,23 +238,13 @@ struct BinarySearchTree<T>::Node {
      *
      * @param value Templated value to store in node
      */
-    Node(const T& value) : value(value) {}
+    Node(T& value) : value(value), lNode(nullptr), rNode(nullptr) {}
 
-    /**
-     * @brief Templated value for storing element in node
-     *
-     */
-    T value;
+    T value;  //< Templated value for storing element in node
 
-    /**
-     * @brief Pointer to left node
-     *
-     */
-    typename BinarySearchTree<T>::Node* lNode = nullptr;
+    typename std::shared_ptr<BinarySearchTree<T>::Node>
+        lNode;  //< Pointer to left node
 
-    /**
-     * @brief Pointer to right node
-     *
-     */
-    typename BinarySearchTree<T>::Node* rNode = nullptr;
+    typename std::shared_ptr<BinarySearchTree<T>::Node>
+        rNode;  //< Pointer to right node
 };
